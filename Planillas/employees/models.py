@@ -88,6 +88,8 @@ class Empleado(models.Model):
         configuration.Ugel, on_delete=models.CASCADE, verbose_name='UGEL')
     persona = models.ForeignKey(
         Persona, on_delete=models.CASCADE, verbose_name='Persona', related_name='empleados')
+    secuencia = models.CharField(
+        max_length=10, verbose_name='Secuencia de registro', null=True, blank=True)
     situacion = models.CharField(
         max_length=20, null=True, default='HAB', choices=SITUACION_CHOICES,
         verbose_name='Situación'
@@ -118,7 +120,8 @@ class Empleado(models.Model):
     regimen_pensionario = models.ForeignKey(
         configuration.RegimenPensionario, on_delete=models.CASCADE, verbose_name='Régimen Pensionario'
     )
-    afp = models.ForeignKey(configuration.AFP, on_delete=models.CASCADE, verbose_name='AFP')
+    afp = models.ForeignKey(
+        configuration.AFP, on_delete=models.CASCADE, verbose_name='AFP')
     cuspp = models.CharField(max_length=12, blank=True, verbose_name='CUSPP')
     fecha_afiliacion = models.DateField(
         null=True, blank=True, verbose_name='Fecha de Afiliación')
@@ -145,13 +148,25 @@ class Empleado(models.Model):
     ruc = models.CharField(max_length=11, blank=True, verbose_name='RUC')
 
     def __str__(self):
-        return f'{self.persona.nombres} {self.persona.paterno} {self.persona.materno} - {self.cargo.nombre_cargo} - {self.fecha_ingreso} - {self.fecha_cese}'
+        return f'{self.secuencia} - {self.persona.nombres} {self.persona.paterno} {self.persona.materno} - {self.cargo.nombre_cargo} - {self.fecha_ingreso} - {self.fecha_cese}'
 
     class Meta:
         db_table = 'empleado'
         ordering = ['id']
         verbose_name = 'Empleado'
         verbose_name_plural = 'Empleados'
+
+    def save(self, *args, **kwargs):
+        if not self.secuencia:
+            last_record = Empleado.objects.filter(
+                persona=self.persona).order_by('-secuencia').first()
+
+            if last_record is not None and last_record.secuencia is not None:
+                self.secuencia = str(int(last_record.secuencia) + 1)
+            else:
+                self.secuencia = '1507001'
+
+        super(Empleado, self).save(*args, **kwargs)
 
 
 class HaberEmpleado(models.Model):
@@ -315,8 +330,6 @@ class Auditoria(models.Model):
         verbose_name_plural = 'Auditorías'
 
 
-
-
 class Remuneracion(models.Model):
     total_haberes = models.DecimalField(
         max_digits=8, decimal_places=2, null=True, blank=True, verbose_name='Total de Haberes'
@@ -329,7 +342,8 @@ class Remuneracion(models.Model):
     )
     emitio_boleta = models.SmallIntegerField(
         null=True, blank=True, verbose_name='Emisión de Boleta')
-    trabajador = models.ForeignKey(Empleado, on_delete=models.CASCADE,verbose_name='Trabajador', related_name='remuneraciones', null=True, blank=True)
+    trabajador = models.ForeignKey(Empleado, on_delete=models.CASCADE,
+                                   verbose_name='Trabajador', related_name='remuneraciones', null=True, blank=True)
     tipo_planilla = models.ForeignKey(
         configuration.TipoPlanilla, on_delete=models.CASCADE, verbose_name='Tipo de Planilla')
     periodo = models.ForeignKey(
@@ -340,7 +354,6 @@ class Remuneracion(models.Model):
     def __str__(self):
         return f'{self.trabajador.persona.nombres} {self.trabajador.persona.paterno} {self.trabajador.persona.materno} - {self.periodo}'
 
-
     class Meta:
         db_table = 'remuneracion'
         ordering = ['id']
@@ -349,9 +362,12 @@ class Remuneracion(models.Model):
 
 
 class RemuneracionBeneficiario(models.Model):
-    beneficiario = models.ForeignKey( Beneficiario, on_delete=models.CASCADE, verbose_name='Beneficiario')
-    periodo = models.ForeignKey(configuration.Periodo, on_delete=models.CASCADE, verbose_name='Período')
-    monto = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, verbose_name='Monto')
+    beneficiario = models.ForeignKey(
+        Beneficiario, on_delete=models.CASCADE, verbose_name='Beneficiario')
+    periodo = models.ForeignKey(
+        configuration.Periodo, on_delete=models.CASCADE, verbose_name='Período')
+    monto = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True, blank=True, verbose_name='Monto')
 
     def __str__(self):
         return f'{self.beneficiario.persona.nombres} {self.beneficiario.persona.paterno} {self.beneficiario.persona.materno} - {self.periodo}'

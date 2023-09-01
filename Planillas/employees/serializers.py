@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Persona, Empleado, Beneficiario, Auditoria, Remuneracion, RemuneracionBeneficiario
+from configuration.serializers import CargoSerializer
 
 
 class PersonaSerializer(serializers.ModelSerializer):
@@ -12,6 +13,8 @@ class PersonaSerializer(serializers.ModelSerializer):
 
 
 class EmpleadoSerializer(serializers.ModelSerializer):
+    persona = PersonaSerializer(read_only=True)
+    cargo = CargoSerializer(read_only=True)
     """
     Serializer para el modelo Empleado.
     """
@@ -27,7 +30,6 @@ class BeneficiarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Beneficiario
         fields = '__all__'
-
 
 
 class AuditoriaSerializer(serializers.ModelSerializer):
